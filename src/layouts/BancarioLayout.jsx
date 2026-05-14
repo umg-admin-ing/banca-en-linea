@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react'
+import {
+  FiActivity,
+  FiChevronLeft,
+  FiCreditCard,
+  FiHome,
+  FiMenu,
+  FiRepeat,
+  FiSend,
+} from 'react-icons/fi'
+
+const opcionesMenu = [
+  {
+    id: 'dashboard',
+    texto: 'Dashboard',
+    textoCorto: 'Inicio',
+    icono: <FiHome />,
+  },
+  {
+    id: 'cuentas',
+    texto: 'Cuentas',
+    textoCorto: 'Cuentas',
+    icono: <FiCreditCard />,
+  },
+  {
+    id: 'movimientos',
+    texto: 'Movimientos',
+    textoCorto: 'Movs.',
+    icono: <FiActivity />,
+  },
+  {
+    id: 'transferencias',
+    texto: 'Transferencias internas',
+    textoCorto: 'Internas',
+    icono: <FiRepeat />,
+  },
+  {
+    id: 'ach',
+    texto: 'Transferencias ACH',
+    textoCorto: 'ACH',
+    icono: <FiSend />,
+  },
+]
+
+function BancarioLayout({
+  children,
+  pantallaActual = 'dashboard',
+  onCambiarPantalla = () => {},
+}) {
+  const [menuColapsado, setMenuColapsado] = useState(() => {
+    const valorGuardado = localStorage.getItem('menu-banca-colapsado')
+    return valorGuardado === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('menu-banca-colapsado', String(menuColapsado))
+  }, [menuColapsado])
+
+  const alternarMenu = () => {
+    setMenuColapsado((estadoActual) => !estadoActual)
+  }
+
+  return (
+    <div className={`app-shell ${menuColapsado ? 'menu-colapsado' : ''}`}>
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="brand-icon">B</span>
+
+          {!menuColapsado && (
+            <div className="brand-text">
+              <h1>Banca en Línea</h1>
+              <p>ERP Bancario</p>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="menu-toggle"
+          onClick={alternarMenu}
+          aria-label={menuColapsado ? 'Expandir menú' : 'Colapsar menú'}
+          title={menuColapsado ? 'Expandir menú' : 'Colapsar menú'}
+        >
+          {menuColapsado ? <FiMenu /> : <FiChevronLeft />}
+        </button>
+
+        <nav className="sidebar-nav" aria-label="Menú principal">
+          {opcionesMenu.map((opcion) => (
+            <button
+              type="button"
+              key={opcion.id}
+              className={`nav-link ${pantallaActual === opcion.id ? 'active' : ''}`}
+              title={opcion.texto}
+              onClick={() => onCambiarPantalla(opcion.id)}
+            >
+              <span className="nav-icon">{opcion.icono}</span>
+
+              {!menuColapsado && (
+                <span className="nav-text">{opcion.texto}</span>
+              )}
+
+              <span className="nav-short">{opcion.textoCorto}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="main-content">
+        <header className="topbar">
+          <div>
+            <h2>Panel bancario</h2>
+            <p>Gestión de cuentas, movimientos y transferencias</p>
+          </div>
+
+          <div className="user-box">
+            <span>Usuario demo</span>
+            <strong>Operador</strong>
+          </div>
+        </header>
+
+        {children}
+      </main>
+    </div>
+  )
+}
+
+export default BancarioLayout
