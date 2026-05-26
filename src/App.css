@@ -16,6 +16,10 @@
   --color-danger-soft: #fff0ec;
   --color-warning: #9a6500;
   --color-warning-soft: #fff8d6;
+
+  --sidebar-width: 280px;
+  --sidebar-compact-width: 92px;
+
   --shadow-card: 0 14px 35px rgba(0, 59, 113, 0.08);
   --shadow-hover: 0 18px 38px rgba(0, 59, 113, 0.14);
   --shadow-soft: 0 8px 22px rgba(0, 59, 113, 0.06);
@@ -25,15 +29,17 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body {
   width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
 }
 
 body {
-  width: 100%;
-  margin: 0;
-  overflow-x: hidden;
   font-family:
     Inter,
     system-ui,
@@ -41,9 +47,7 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background:
-    radial-gradient(circle at top right, rgba(0, 166, 180, 0.08), transparent 28%),
-    var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-text);
 }
 
@@ -64,18 +68,24 @@ button {
 }
 
 /* =========================
-   Layout general
+   Layout base
 ========================= */
 
 .app-shell {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  transition: grid-template-columns 0.25s ease;
+  width: 100%;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at top right, rgba(0, 166, 180, 0.09), transparent 28%),
+    var(--color-bg);
 }
 
-.app-shell.menu-colapsado {
-  grid-template-columns: 92px minmax(0, 1fr);
+.main-content {
+  min-width: 0;
+  min-height: 100dvh;
+  padding: clamp(16px, 2vw, 26px);
+  background:
+    radial-gradient(circle at top right, rgba(0, 166, 180, 0.09), transparent 28%),
+    var(--color-bg);
 }
 
 /* =========================
@@ -83,9 +93,14 @@ button {
 ========================= */
 
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  height: 100vh;
+  left: 0;
+  bottom: 0;
+  z-index: 1000;
+  width: var(--sidebar-width);
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   padding: 22px 18px;
   display: flex;
@@ -97,7 +112,23 @@ button {
     var(--color-primary-dark) 100%
   );
   color: var(--color-white);
-  z-index: 50;
+  box-shadow: 14px 0 32px rgba(0, 43, 82, 0.12);
+  transition:
+    width 0.25s ease,
+    transform 0.25s ease;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.25s ease;
+}
+
+.app-shell.menu-colapsado .sidebar {
+  width: var(--sidebar-compact-width);
+}
+
+.app-shell.menu-colapsado .main-content {
+  margin-left: var(--sidebar-compact-width);
 }
 
 .sidebar-brand {
@@ -153,11 +184,6 @@ button {
 .menu-toggle:hover {
   background: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
-}
-
-.menu-colapsado .menu-toggle,
-.menu-colapsado .brand-icon {
-  margin-inline: auto;
 }
 
 .sidebar-nav {
@@ -219,21 +245,29 @@ button {
   display: none;
 }
 
-.menu-colapsado .nav-link {
+.app-shell.menu-colapsado .brand-text,
+.app-shell.menu-colapsado .nav-text {
+  display: none;
+}
+
+.app-shell.menu-colapsado .sidebar-brand {
+  justify-content: center;
+}
+
+.app-shell.menu-colapsado .menu-toggle,
+.app-shell.menu-colapsado .brand-icon {
+  margin-inline: auto;
+}
+
+.app-shell.menu-colapsado .nav-link {
   justify-content: center;
   padding-inline: 0;
   text-align: center;
 }
 
 /* =========================
-   Contenido principal
+   Topbar
 ========================= */
-
-.main-content {
-  width: 100%;
-  min-width: 0;
-  padding: clamp(16px, 2vw, 26px);
-}
 
 .topbar {
   margin-bottom: 24px;
@@ -411,14 +445,6 @@ button {
   background: var(--color-primary-soft);
   color: var(--color-primary);
   font-size: 1.22rem;
-  transition:
-    background 0.22s ease,
-    color 0.22s ease;
-}
-
-.summary-card:hover .summary-icon {
-  background: #dff4f8;
-  color: var(--color-primary-dark);
 }
 
 .summary-info {
@@ -450,11 +476,6 @@ button {
   overflow: visible;
   text-align: left;
   font-variant-numeric: tabular-nums;
-  transition: color 0.22s ease;
-}
-
-.summary-card:hover .summary-info strong {
-  color: var(--color-primary-dark);
 }
 
 .summary-info small {
@@ -486,11 +507,6 @@ button {
 }
 
 .summary-card.warning .summary-info strong {
-  color: var(--color-warning);
-}
-
-.summary-card.warning:hover .summary-icon {
-  background: #fff1a6;
   color: var(--color-warning);
 }
 
@@ -536,7 +552,7 @@ button {
 }
 
 /* =========================
-   Mini listas dashboard
+   Mini listas
 ========================= */
 
 .mini-list {
@@ -620,20 +636,14 @@ button.mini-list-item {
   gap: 8px;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
 }
 
 .secondary-action:hover {
   background: var(--color-primary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
 }
 
 /* =========================
-   Botón agregar apartado
+   Agregar apartado
 ========================= */
 
 .add-widget-card {
@@ -665,9 +675,6 @@ button.mini-list-item {
   place-items: center;
   background: var(--color-primary-soft);
   font-size: 1.22rem;
-  transition:
-    background 0.22s ease,
-    color 0.22s ease;
 }
 
 .add-widget-card strong {
@@ -687,11 +694,6 @@ button.mini-list-item {
   border-color: var(--color-aqua);
   background: var(--color-white);
   box-shadow: var(--shadow-hover);
-}
-
-.add-widget-card:hover span {
-  background: #dff4f8;
-  color: var(--color-primary-dark);
 }
 
 /* =========================
@@ -788,10 +790,6 @@ button.mini-list-item {
   font-size: 0.92rem;
 }
 
-.search-box input::placeholder {
-  color: #98a5b5;
-}
-
 .toolbar-button {
   min-height: 46px;
   border: 1px solid var(--color-border);
@@ -806,30 +804,12 @@ button.mini-list-item {
   font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease,
-    color 0.22s ease;
-}
-
-.toolbar-button:hover {
-  transform: translateY(-3px);
-  border-color: var(--color-aqua);
-  background: var(--color-primary-soft);
-  box-shadow: var(--shadow-soft);
 }
 
 .toolbar-button.primary {
   background: var(--color-primary);
   color: var(--color-white);
   border-color: var(--color-primary);
-}
-
-.toolbar-button.primary:hover {
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
 }
 
 /* =========================
@@ -849,7 +829,12 @@ button.mini-list-item {
   background: #fbfdff;
   padding: 16px;
   display: grid;
-  grid-template-columns: minmax(240px, 1.4fr) minmax(90px, 0.6fr) minmax(150px, 0.8fr) minmax(80px, 0.6fr) 44px;
+  grid-template-columns:
+    minmax(240px, 1.4fr)
+    minmax(90px, 0.6fr)
+    minmax(150px, 0.8fr)
+    minmax(80px, 0.6fr)
+    44px;
   align-items: center;
   gap: 16px;
   text-align: left;
@@ -947,18 +932,6 @@ button.mini-list-item {
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease;
-}
-
-.icon-action:hover {
-  transform: translateY(-3px);
-  border-color: var(--color-aqua);
-  background: var(--color-primary-soft);
-  box-shadow: var(--shadow-soft);
 }
 
 /* =========================
@@ -1114,7 +1087,7 @@ button.mini-list-item {
 }
 
 /* =========================
-   Dashboard inferior
+   Listas dashboard
 ========================= */
 
 .account-list,
@@ -1218,24 +1191,10 @@ button.mini-list-item {
   padding: 13px;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease,
-    color 0.22s ease;
-}
-
-.widget-options button:hover {
-  transform: translateY(-5px);
-  border-color: var(--color-aqua);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-  box-shadow: var(--shadow-soft);
 }
 
 /* =========================
-   Formularios de transferencias
+   Formularios
 ========================= */
 
 .transfer-layout {
@@ -1285,10 +1244,6 @@ button.mini-list-item {
   color: var(--color-text);
   padding: 13px 14px;
   outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
 }
 
 .form-group textarea {
@@ -1328,25 +1283,12 @@ button.mini-list-item {
   gap: 8px;
   font-weight: 900;
   cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    background 0.22s ease,
-    border-color 0.22s ease,
-    color 0.22s ease;
 }
 
 .primary-action {
   border: 1px solid var(--color-primary);
   background: var(--color-primary);
   color: var(--color-white);
-}
-
-.primary-action:hover:not(:disabled) {
-  transform: translateY(-3px);
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
-  box-shadow: var(--shadow-soft);
 }
 
 .primary-action:disabled {
@@ -1360,15 +1302,8 @@ button.mini-list-item {
   color: var(--color-primary);
 }
 
-.outline-action:hover {
-  transform: translateY(-3px);
-  border-color: var(--color-aqua);
-  background: var(--color-primary-soft);
-  box-shadow: var(--shadow-soft);
-}
-
 /* =========================
-   Resumen de transferencias
+   Resumen transferencias
 ========================= */
 
 .transfer-summary {
@@ -1461,11 +1396,6 @@ button.mini-list-item {
   padding: 14px;
 }
 
-.summary-line.total span,
-.summary-line.total strong {
-  color: var(--color-primary);
-}
-
 .notice-card {
   margin-top: 16px;
   border: 1px solid #d4e8fb;
@@ -1498,7 +1428,7 @@ button.mini-list-item {
 }
 
 /* =========================
-   Bancos destino ACH
+   Bancos ACH
 ========================= */
 
 .bank-options {
@@ -1518,11 +1448,6 @@ button.mini-list-item {
   color: var(--color-primary);
   text-align: left;
   cursor: pointer;
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease;
 }
 
 .bank-option strong {
@@ -1536,22 +1461,10 @@ button.mini-list-item {
   font-weight: 800;
 }
 
-.bank-option:hover,
 .bank-option.active {
-  transform: translateY(-4px);
   border-color: var(--color-aqua);
   background: var(--color-primary-soft);
-  box-shadow: var(--shadow-soft);
 }
-
-.bank-option.active strong,
-.bank-option.active span {
-  color: var(--color-primary);
-}
-
-/* =========================
-   Estado vacío
-========================= */
 
 .empty-state {
   text-align: left;
@@ -1568,44 +1481,39 @@ button.mini-list-item {
 }
 
 /* =========================
-   Responsive tablets
+   Pantallas medianas
+   Evita sidebar abierto en anchos angostos
 ========================= */
 
-@media (max-width: 1180px) {
-  .app-shell,
-  .app-shell.menu-colapsado {
-    grid-template-columns: 1fr;
+@media (max-width: 1180px) and (min-width: 901px) {
+  .sidebar,
+  .app-shell.menu-colapsado .sidebar {
+    width: var(--sidebar-compact-width);
   }
 
-  .sidebar {
-    position: static;
-    height: auto;
-    border-radius: 0 0 24px 24px;
+  .main-content,
+  .app-shell.menu-colapsado .main-content {
+    margin-left: var(--sidebar-compact-width);
+  }
+
+  .brand-text,
+  .nav-text {
+    display: none;
   }
 
   .sidebar-brand {
-    justify-content: space-between;
+    justify-content: center;
   }
 
-  .menu-colapsado .brand-text,
-  .menu-colapsado .nav-text {
-    display: inline;
+  .menu-toggle,
+  .brand-icon {
+    margin-inline: auto;
   }
 
-  .menu-colapsado .brand-icon,
-  .menu-colapsado .menu-toggle {
-    margin-inline: 0;
-  }
-
-  .sidebar-nav {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  .menu-colapsado .nav-link,
   .nav-link {
-    justify-content: flex-start;
-    padding: 12px 14px;
-    text-align: left;
+    justify-content: center;
+    padding-inline: 0;
+    text-align: center;
   }
 
   .account-row,
@@ -1618,10 +1526,6 @@ button.mini-list-item {
     grid-column: 1 / -1;
   }
 
-  .icon-action {
-    justify-self: start;
-  }
-
   .transfer-layout {
     grid-template-columns: 1fr;
   }
@@ -1632,29 +1536,28 @@ button.mini-list-item {
 }
 
 /* =========================
-   Responsive celulares
-   Menú inferior tipo app bancaria
+   Celulares
+   Aquí desaparece el lateral y pasa abajo
 ========================= */
 
-@media (max-width: 760px) {
-  .app-shell,
-  .app-shell.menu-colapsado {
-    display: block;
-    min-height: 100vh;
-  }
-
-  .main-content {
+@media (max-width: 900px) {
+  .main-content,
+  .app-shell.menu-colapsado .main-content {
+    margin-left: 0;
     padding: 18px;
-    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    padding-bottom: calc(98px + env(safe-area-inset-bottom));
   }
 
-  .sidebar {
+  .sidebar,
+  .app-shell.menu-colapsado .sidebar {
     position: fixed;
     top: auto;
     right: 0;
     bottom: 0;
     left: 0;
+    width: 100%;
     height: auto;
+    min-height: auto;
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
     border-radius: 24px 24px 0 0;
     background: rgba(0, 59, 113, 0.98);
@@ -1675,7 +1578,7 @@ button.mini-list-item {
   }
 
   .nav-link,
-  .menu-colapsado .nav-link {
+  .app-shell.menu-colapsado .nav-link {
     min-height: 58px;
     border-radius: 18px;
     padding: 7px 4px;
@@ -1736,10 +1639,6 @@ button.mini-list-item {
   .panel-header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .panel-header span {
-    align-self: flex-start;
   }
 
   .summary-card-button {
@@ -1835,12 +1734,14 @@ button.mini-list-item {
 ========================= */
 
 @media (max-width: 480px) {
-  .main-content {
+  .main-content,
+  .app-shell.menu-colapsado .main-content {
     padding: 14px;
     padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
 
-  .sidebar {
+  .sidebar,
+  .app-shell.menu-colapsado .sidebar {
     padding-inline: 8px;
   }
 
@@ -1849,7 +1750,7 @@ button.mini-list-item {
   }
 
   .nav-link,
-  .menu-colapsado .nav-link {
+  .app-shell.menu-colapsado .nav-link {
     min-height: 56px;
     border-radius: 16px;
     padding: 6px 2px;
@@ -1942,7 +1843,7 @@ button.mini-list-item {
   }
 
   .nav-link,
-  .menu-colapsado .nav-link {
+  .app-shell.menu-colapsado .nav-link {
     min-height: 52px;
   }
 
@@ -1952,7 +1853,7 @@ button.mini-list-item {
 }
 
 /* =========================
-   Accesibilidad: reducir movimiento
+   Accesibilidad
 ========================= */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1970,16 +1871,16 @@ button.mini-list-item {
   .account-card:hover,
   .movement-item:hover,
   .mini-list-item:hover,
-  .widget-options button:hover,
-  .secondary-action:hover,
-  .toolbar-button:hover,
   .account-row:hover,
   .movement-row:hover,
-  .icon-action:hover,
-  .primary-action:hover,
-  .outline-action:hover,
-  .bank-option:hover,
   .nav-link:hover {
     transform: none;
   }
+}
+.brand-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
 }

@@ -8,6 +8,7 @@ import {
   FiRepeat,
   FiSend,
 } from 'react-icons/fi'
+import logoNovaBank from '../assets/novabank-logo.png'
 
 const opcionesMenu = [
   {
@@ -64,14 +65,18 @@ function BancarioLayout({
     <div className={`app-shell ${menuColapsado ? 'menu-colapsado' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="brand-icon">B</span>
+          <div className="brand-icon">
+            <img
+              src={logoNovaBank}
+              alt="Logo NovaBank"
+              className="brand-logo-image"
+            />
+          </div>
 
-          {!menuColapsado && (
-            <div className="brand-text">
-              <h1>Banca en Línea</h1>
-              <p>ERP Bancario</p>
-            </div>
-          )}
+          <div className="brand-text">
+            <h1>NovaBank</h1>
+            <p>Tu futuro, nuestra prioridad</p>
+          </div>
         </div>
 
         <button
@@ -94,11 +99,7 @@ function BancarioLayout({
               onClick={() => onCambiarPantalla(opcion.id)}
             >
               <span className="nav-icon">{opcion.icono}</span>
-
-              {!menuColapsado && (
-                <span className="nav-text">{opcion.texto}</span>
-              )}
-
+              <span className="nav-text">{opcion.texto}</span>
               <span className="nav-short">{opcion.textoCorto}</span>
             </button>
           ))}
