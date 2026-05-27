@@ -811,10 +811,11 @@ button.mini-list-item {
   padding: 16px;
   display: grid;
   grid-template-columns:
-    minmax(240px, 1.4fr)
-    minmax(90px, 0.6fr)
-    minmax(150px, 0.8fr)
-    minmax(80px, 0.6fr)
+    minmax(260px, 1.3fr)
+    minmax(120px, 0.7fr)
+    minmax(120px, 0.7fr)
+    minmax(120px, 0.7fr)
+    auto
     44px;
   align-items: center;
   gap: 16px;
@@ -935,15 +936,15 @@ button.mini-list-item {
   padding: 16px;
   display: grid;
   grid-template-columns:
-    minmax(240px, 1.5fr)
-    minmax(130px, 1fr)
-    minmax(130px, 1fr)
-    minmax(110px, 0.8fr)
-    minmax(120px, 0.8fr)
+    minmax(300px, 1.35fr)
+    minmax(230px, 0.95fr)
+    minmax(190px, 0.75fr)
+    minmax(92px, 110px)
     44px;
   align-items: center;
   gap: 16px;
   text-align: left;
+  overflow: hidden;
   transition:
     transform 0.22s ease,
     border-color 0.22s ease,
@@ -1067,6 +1068,61 @@ button.mini-list-item {
   color: var(--color-warning);
 }
 
+.status-badge.debit {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.status-badge.credit {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.movement-row .status-badge {
+  justify-self: center;
+  max-width: 100%;
+  min-width: 86px;
+  text-align: center;
+  justify-content: center;
+}
+
+.movement-row .icon-action {
+  justify-self: end;
+}
+
+.movement-meta-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.movement-amount-box {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.movement-main h3,
+.movement-main p,
+.movement-detail strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movement-main h3,
+.movement-detail strong {
+  white-space: nowrap;
+}
+
+.movement-main p {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* =========================
    Listas dashboard
 ========================= */
@@ -1148,6 +1204,51 @@ button.mini-list-item {
   padding: 5px 9px;
   font-size: 0.8rem;
   font-weight: 800;
+}
+
+.dashboard-scroll-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #b6cadf;
+}
+
+.dashboard-mini-movement {
+  align-items: flex-start;
+}
+
+.dashboard-mini-movement > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.dashboard-mini-movement strong,
+.dashboard-mini-movement small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-mini-movement strong {
+  white-space: nowrap;
+}
+
+.dashboard-mini-movement small {
+  display: block;
+}
+
+.dashboard-mini-movement .mini-amount {
+  align-self: center;
+  justify-self: end;
 }
 
 /* =========================
@@ -1253,7 +1354,9 @@ button.mini-list-item {
   color: var(--color-white);
 }
 
-.primary-action:disabled {
+.primary-action:disabled,
+.outline-action:disabled,
+.toolbar-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -1621,12 +1724,17 @@ button.mini-list-item {
 
   .account-row,
   .movement-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .account-row-main,
   .movement-main {
     grid-column: 1 / -1;
+  }
+
+  .movement-meta-grid,
+  .movement-amount-box {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .transfer-layout {
@@ -1636,6 +1744,13 @@ button.mini-list-item {
   .transfer-summary {
     position: static;
     top: auto;
+  }
+
+  .status-badge,
+  .icon-action,
+  .movement-row .status-badge,
+  .movement-row .icon-action {
+    justify-self: start;
   }
 }
 
@@ -1796,6 +1911,7 @@ button.mini-list-item {
   .account-row,
   .movement-row {
     grid-template-columns: 1fr;
+    overflow: visible;
   }
 
   .account-row-main,
@@ -1812,9 +1928,16 @@ button.mini-list-item {
     word-break: break-word;
   }
 
+  .movement-meta-grid,
+  .movement-amount-box {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .account-row-status span,
   .status-badge,
-  .icon-action {
+  .icon-action,
+  .movement-row .status-badge,
+  .movement-row .icon-action {
     justify-self: start;
   }
 
@@ -1875,6 +1998,27 @@ button.mini-list-item {
 /* =========================
    Celulares pequeños
 ========================= */
+
+@media (max-width: 640px) {
+  .movement-meta-grid,
+  .movement-amount-box {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-mini-movement {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-mini-movement .mini-amount {
+    justify-self: start;
+  }
+
+  .movement-main h3,
+  .movement-detail strong {
+    white-space: normal;
+  }
+}
 
 @media (max-width: 480px) {
   .main-content,

@@ -6,28 +6,22 @@ import Movimientos from './pages/Movimientos'
 import TransferenciasInternas from './pages/TransferenciasInternas'
 import TransferenciasACH from './pages/TransferenciasACH'
 import Login from './pages/Login'
+import {
+  cerrarSesion as cerrarSesionServicio,
+  obtenerSesionGuardada,
+} from './services/authService'
 import './App.css'
-
-function obtenerSesionInicial() {
-  try {
-    const sesionGuardada = localStorage.getItem('novabank_sesion')
-    return sesionGuardada ? JSON.parse(sesionGuardada) : null
-  } catch {
-    return null
-  }
-}
 
 function App() {
   const [pantallaActual, setPantallaActual] = useState('dashboard')
-  const [usuario, setUsuario] = useState(obtenerSesionInicial)
+  const [usuario, setUsuario] = useState(obtenerSesionGuardada)
 
   const iniciarSesion = (datosUsuario) => {
     setUsuario(datosUsuario)
   }
 
   const cerrarSesion = () => {
-    localStorage.removeItem('novabank_sesion')
-    localStorage.removeItem('novabank_token')
+    cerrarSesionServicio()
     setUsuario(null)
     setPantallaActual('dashboard')
   }

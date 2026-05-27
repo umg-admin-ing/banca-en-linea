@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { FiLock, FiLogIn, FiUser } from 'react-icons/fi'
 import logoNovaBank from '../assets/novabank-logo.png'
+import { iniciarSesion } from '../services/authService'
 
 function Login({ onIniciarSesion }) {
   const [formulario, setFormulario] = useState({
-    usuario: '',
+    username: '',
     password: '',
   })
 
   const [error, setError] = useState('')
+  const [cargando, setCargando] = useState(false)
 
   const manejarCambio = (evento) => {
     const { name, value } = evento.target
@@ -21,21 +23,35 @@ function Login({ onIniciarSesion }) {
     setError('')
   }
 
-  const manejarEnvio = (evento) => {
+  const manejarEnvio = async (evento) => {
     evento.preventDefault()
 
-    if (!formulario.usuario.trim() || !formulario.password.trim()) {
+    const username = formulario.username.trim()
+    const password = formulario.password.trim()
+
+    if (!username || !password) {
       setError('Ingresa usuario y contraseña para continuar.')
       return
     }
 
-    const usuarioSesion = {
-      nombre: formulario.usuario.trim(),
-      rol: 'Operador',
-    }
+    try {
+      setCargando(true)
+      setError('')
 
-    localStorage.setItem('novabank_sesion', JSON.stringify(usuarioSesion))
-    onIniciarSesion(usuarioSesion)
+      const resultado = await iniciarSesion({
+        username,
+        password,
+      })
+
+      onIniciarSesion(resultado.usuario)
+    } catch (errorLogin) {
+      setError(
+        errorLogin?.message ||
+          'No se pudo iniciar sesión. Verifica tus credenciales.',
+      )
+    } finally {
+      setCargando(false)
+    }
   }
 
   return (
@@ -63,11 +79,12 @@ function Login({ onIniciarSesion }) {
               <FiUser />
               <input
                 type="text"
-                name="usuario"
-                placeholder="Ejemplo: operador"
-                value={formulario.usuario}
+                name="username"
+                placeholder="Ingresa tu usuario"
+                value={formulario.username}
                 onChange={manejarCambio}
                 autoComplete="username"
+                disabled={cargando}
               />
             </div>
           </label>
@@ -83,15 +100,16 @@ function Login({ onIniciarSesion }) {
                 value={formulario.password}
                 onChange={manejarCambio}
                 autoComplete="current-password"
+                disabled={cargando}
               />
             </div>
           </label>
 
           {error && <p className="login-error">{error}</p>}
 
-          <button type="submit" className="login-button">
+          <button type="submit" className="login-button" disabled={cargando}>
             <FiLogIn />
-            Entrar al sistema
+            {cargando ? 'Validando...' : 'Entrar al sistema'}
           </button>
         </form>
       </section>
