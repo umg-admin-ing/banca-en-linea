@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
+  FiAlertCircle,
   FiCheckCircle,
   FiCreditCard,
-  FiLock,
   FiSend,
-  FiShield,
   FiUserCheck,
 } from 'react-icons/fi'
 import { cuentas } from '../data/bancaData'
@@ -93,6 +92,17 @@ function TransferenciasACH() {
     }))
   }
 
+  const limpiarFormulario = () => {
+    setFormulario({
+      cuentaOrigen: '',
+      bancoDestino: '',
+      cuentaDestino: '',
+      nombreBeneficiario: '',
+      monto: '',
+      descripcion: '',
+    })
+  }
+
   return (
     <section className="page-section" id="ach">
       <div className="page-title">
@@ -139,20 +149,8 @@ function TransferenciasACH() {
             <span>Beneficiario</span>
           </div>
 
-          <strong>Validado</strong>
-          <small>La cuenta destino debe ser verificada por backend.</small>
-        </article>
-
-        <article className="summary-card simple">
-          <div className="simple-card-header">
-            <span className="summary-icon">
-              <FiShield />
-            </span>
-            <span>Seguridad</span>
-          </div>
-
-          <strong>OTP</strong>
-          <small>La autorización final requiere segundo factor.</small>
+          <strong>Revisión</strong>
+          <small>Verifica banco, nombre y cuenta destino.</small>
         </article>
       </div>
 
@@ -261,7 +259,11 @@ function TransferenciasACH() {
             </div>
 
             <div className="form-actions">
-              <button type="button" className="outline-action">
+              <button
+                type="button"
+                className="outline-action"
+                onClick={limpiarFormulario}
+              >
                 Limpiar
               </button>
 
@@ -322,13 +324,13 @@ function TransferenciasACH() {
             </div>
           </div>
 
-          <div className="notice-card">
-            <FiLock />
+          <div className="notice-card warning">
+            <FiAlertCircle />
             <div>
-              <strong>Control de seguridad</strong>
+              <strong>Validación pendiente</strong>
               <p>
-                Esta pantalla solo simula el registro visual. La autorización
-                real debe validarse en backend con OTP, límites y permisos.
+                Completa los datos requeridos y confirma que el total no supere
+                el saldo disponible.
               </p>
             </div>
           </div>

@@ -16,8 +16,17 @@ function formatoMoneda(valor) {
   }).format(valor)
 }
 
+function obtenerReferencia(movimiento) {
+  return (
+    movimiento.referencia ||
+    movimiento.autorizacion ||
+    movimiento.idMovimiento ||
+    `MOV-${movimiento.id}`
+  )
+}
+
 function Dashboard() {
-  const [tarjetaAbierta, setTarjetaAbierta] = useState('cuentas')
+  const [tarjetaAbierta, setTarjetaAbierta] = useState('')
 
   const cuentasActivas = useMemo(
     () =>
@@ -196,7 +205,7 @@ function Dashboard() {
                   <div className="mini-list-item" key={movimiento.id}>
                     <span>
                       <strong>{movimiento.tipo}</strong>
-                      <small>{movimiento.referencia}</small>
+                      <small>{obtenerReferencia(movimiento)}</small>
                     </span>
 
                     <span
@@ -244,7 +253,7 @@ function Dashboard() {
                     <div className="mini-list-item" key={movimiento.id}>
                       <span>
                         <strong>{movimiento.tipo}</strong>
-                        <small>{movimiento.referencia}</small>
+                        <small>{obtenerReferencia(movimiento)}</small>
                       </span>
 
                       <span className="mini-amount debit">
@@ -310,7 +319,7 @@ function Dashboard() {
                   <h3>{movimiento.tipo}</h3>
                   <p>{movimiento.descripcion}</p>
                   <small>
-                    {movimiento.fecha} · {movimiento.referencia}
+                    {movimiento.fecha} · {obtenerReferencia(movimiento)}
                   </small>
                 </div>
 

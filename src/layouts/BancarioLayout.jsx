@@ -4,6 +4,7 @@ import {
   FiChevronLeft,
   FiCreditCard,
   FiHome,
+  FiLogOut,
   FiMenu,
   FiRepeat,
   FiSend,
@@ -45,8 +46,10 @@ const opcionesMenu = [
 
 function BancarioLayout({
   children,
+  usuario,
   pantallaActual = 'dashboard',
   onCambiarPantalla = () => {},
+  onCerrarSesion = () => {},
 }) {
   const [menuColapsado, setMenuColapsado] = useState(() => {
     const valorGuardado = localStorage.getItem('menu-banca-colapsado')
@@ -114,8 +117,17 @@ function BancarioLayout({
           </div>
 
           <div className="user-box">
-            <span>Usuario demo</span>
-            <strong>Operador</strong>
+            <span>{usuario?.nombre || 'Usuario'}</span>
+            <strong>{usuario?.rol || 'Operador'}</strong>
+
+            <button
+              type="button"
+              className="logout-button"
+              onClick={onCerrarSesion}
+            >
+              <FiLogOut />
+              Salir
+            </button>
           </div>
         </header>
 
