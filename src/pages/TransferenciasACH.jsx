@@ -7,7 +7,8 @@ import {
   FiSend,
   FiUserCheck,
 } from 'react-icons/fi'
-import { listarCuentas } from '../services/cuentaService'
+import { listarBancos } from '../services/bancoService'
+import { listarCuentasPorCliente } from '../services/cuentaService'
 import { registrarTransferenciaAchSaliente } from '../services/transferenciaService'
 
 function formatoMoneda(valor) {
@@ -17,17 +18,20 @@ function formatoMoneda(valor) {
   }).format(Number(valor || 0))
 }
 
-function TransferenciasACH() {
+function TransferenciasACH({ usuario }) {
   const [cuentas, setCuentas] = useState([])
+  const [bancos, setBancos] = useState([])
+
   const [formulario, setFormulario] = useState({
     cuentaOrigenId: '',
-    cuentaDestino: '',
     swiftDestino: '',
+    cuentaDestino: '',
     monto: '',
     descripcion: '',
   })
 
   const [cargandoCuentas, setCargandoCuentas] = useState(true)
+  const [cargandoBancos, setCargandoBancos] = useState(true)
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState('')
   const [mensajeExito, setMensajeExito] = useState('')
@@ -38,21 +42,48 @@ function TransferenciasACH() {
       setCargandoCuentas(true)
       setError('')
 
-      const cuentasApi = await listarCuentas()
-      setCuentas(cuentasApi)
+      if (!usuario?.idCliente) {
+        setCuentas([])
+        setError('El usuario actual no tiene cliente asociado.')
+        return
+      }
+
+      const cuentasUsuario = await listarCuentasPorCliente(usuario.idCliente)
+      setCuentas(cuentasUsuario)
     } catch (errorCarga) {
       setError(
         errorCarga?.message ||
-          'No se pudieron cargar las cuentas disponibles.',
+          'No se pudieron cargar las cuentas del usuario.',
       )
     } finally {
       setCargandoCuentas(false)
     }
   }
 
+  const cargarBancos = async () => {
+    try {
+      setCargandoBancos(true)
+      setError('')
+
+      const bancosApi = await listarBancos()
+      setBancos(bancosApi)
+    } catch (errorCarga) {
+      setError(
+        errorCarga?.message ||
+          'No se pudieron cargar los bancos disponibles.',
+      )
+    } finally {
+      setCargandoBancos(false)
+    }
+  }
+
+  const cargarDatos = async () => {
+    await Promise.all([cargarCuentas(), cargarBancos()])
+  }
+
   useEffect(() => {
-    cargarCuentas()
-  }, [])
+    cargarDatos()
+  }, [usuario?.idCliente])
 
   const cuentaOrigen = useMemo(() => {
     return cuentas.find(
@@ -60,7 +91,14 @@ function TransferenciasACH() {
     )
   }, [cuentas, formulario.cuentaOrigenId])
 
+  const bancoDestino = useMemo(() => {
+    return bancos.find((banco) => banco.swift === formulario.swiftDestino)
+  }, [bancos, formulario.swiftDestino])
+
   const montoNumerico = Number(formulario.monto || 0)
+
+  const cuentaDestinoLimpia = formulario.cuentaDestino.trim()
+  const descripcionLimpia = formulario.descripcion.trim()
 
   const swiftOrigenValido =
     cuentaOrigen?.swiftBanco && cuentaOrigen.swiftBanco !== 'N/A'
@@ -68,9 +106,9 @@ function TransferenciasACH() {
   const formularioValido =
     cuentaOrigen &&
     swiftOrigenValido &&
-    formulario.cuentaDestino.trim().length >= 6 &&
-    formulario.swiftDestino.trim().length >= 3 &&
-    formulario.descripcion.trim().length >= 3 &&
+    bancoDestino &&
+    cuentaDestinoLimpia.length >= 6 &&
+    descripcionLimpia.length >= 3 &&
     montoNumerico > 0 &&
     montoNumerico <= Number(cuentaOrigen.saldoDisponible || 0)
 
@@ -79,7 +117,7 @@ function TransferenciasACH() {
 
     setFormulario((estadoActual) => ({
       ...estadoActual,
-      [name]: name === 'swiftDestino' ? value.toUpperCase() : value,
+      [name]: value,
     }))
 
     setError('')
@@ -90,8 +128,8 @@ function TransferenciasACH() {
   const limpiarFormulario = () => {
     setFormulario({
       cuentaOrigenId: '',
-      cuentaDestino: '',
       swiftDestino: '',
+      cuentaDestino: '',
       monto: '',
       descripcion: '',
     })
@@ -104,7 +142,7 @@ function TransferenciasACH() {
   const enviarTransferencia = async () => {
     if (!formularioValido) {
       setError(
-        'Completa la cuenta origen, cuenta destino, SWIFT destino, descripción y verifica que el monto sea válido.',
+        'Selecciona una cuenta origen propia, banco destino, cuenta destino, descripción y verifica que el monto sea válido.',
       )
       return
     }
@@ -118,10 +156,10 @@ function TransferenciasACH() {
       const transferencia = await registrarTransferenciaAchSaliente({
         cuentaOrigen: cuentaOrigen.numeroCuenta,
         swiftOrigen: cuentaOrigen.swiftBanco,
-        cuentaDestino: formulario.cuentaDestino.trim(),
-        swiftDestino: formulario.swiftDestino.trim(),
+        cuentaDestino: cuentaDestinoLimpia,
+        swiftDestino: bancoDestino.swift,
         monto: montoNumerico,
-        descripcion: formulario.descripcion.trim(),
+        descripcion: descripcionLimpia,
       })
 
       setTransferenciaRegistrada(transferencia)
@@ -131,8 +169,8 @@ function TransferenciasACH() {
 
       setFormulario({
         cuentaOrigenId: '',
-        cuentaDestino: '',
         swiftDestino: '',
+        cuentaDestino: '',
         monto: '',
         descripcion: '',
       })
@@ -150,11 +188,11 @@ function TransferenciasACH() {
     <section className="page-section" id="ach">
       <div className="page-title">
         <div>
-          <span className="eyebrow">Operaciones externas</span>
+          <span className="eyebrow">Operaciones personales externas</span>
           <h1>Transferencias ACH</h1>
           <p>
-            Registra transferencias salientes hacia cuentas de otros bancos
-            usando cuenta origen, SWIFT destino y monto.
+            Registra transferencias salientes desde tus cuentas hacia cuentas de
+            otros bancos.
           </p>
         </div>
       </div>
@@ -177,11 +215,11 @@ function TransferenciasACH() {
             <span className="summary-icon">
               <FiCreditCard />
             </span>
-            <span>Cuentas origen</span>
+            <span>Mis cuentas origen</span>
           </div>
 
           <strong>{cuentas.length}</strong>
-          <small>Cuentas cargadas desde el backend.</small>
+          <small>Cuentas asociadas al usuario autenticado.</small>
         </article>
 
         <article className="summary-card simple">
@@ -189,11 +227,11 @@ function TransferenciasACH() {
             <span className="summary-icon">
               <FiUserCheck />
             </span>
-            <span>Validación</span>
+            <span>Bancos disponibles</span>
           </div>
 
-          <strong>{formularioValido ? 'Lista' : 'Pendiente'}</strong>
-          <small>Revisa cuenta, SWIFT, monto y descripción.</small>
+          <strong>{bancos.length}</strong>
+          <small>Bancos externos.</small>
         </article>
       </div>
 
@@ -222,7 +260,10 @@ function TransferenciasACH() {
           <div className="panel-header">
             <div>
               <h2>Nueva transferencia ACH</h2>
-              <p>Completa los datos requeridos para registrar la operación.</p>
+              <p>
+                Selecciona una cuenta propia como origen, el banco destino y la
+                cuenta a la que deseas transferir.
+              </p>
             </div>
 
             <span>Saliente</span>
@@ -240,7 +281,7 @@ function TransferenciasACH() {
                 >
                   <option value="">
                     {cargandoCuentas
-                      ? 'Cargando cuentas...'
+                      ? 'Cargando tus cuentas...'
                       : 'Selecciona una cuenta origen'}
                   </option>
 
@@ -255,24 +296,34 @@ function TransferenciasACH() {
               </label>
 
               <label className="form-group">
+                <span>Banco destino</span>
+                <select
+                  name="swiftDestino"
+                  value={formulario.swiftDestino}
+                  onChange={manejarCambio}
+                  disabled={cargandoBancos || procesando}
+                >
+                  <option value="">
+                    {cargandoBancos
+                      ? 'Cargando bancos...'
+                      : 'Selecciona banco destino'}
+                  </option>
+
+                  {bancos.map((banco) => (
+                    <option key={banco.swift} value={banco.swift}>
+                      {banco.nombre} · {banco.swift}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-group">
                 <span>Cuenta destino</span>
                 <input
                   type="text"
                   name="cuentaDestino"
-                  placeholder="Ejemplo: 4455667788"
+                  placeholder="Ingresa número de cuenta destino"
                   value={formulario.cuentaDestino}
-                  onChange={manejarCambio}
-                  disabled={procesando}
-                />
-              </label>
-
-              <label className="form-group">
-                <span>SWIFT destino</span>
-                <input
-                  type="text"
-                  name="swiftDestino"
-                  placeholder="Ejemplo: BACCGTGC"
-                  value={formulario.swiftDestino}
                   onChange={manejarCambio}
                   disabled={procesando}
                 />
@@ -323,11 +374,11 @@ function TransferenciasACH() {
               <button
                 type="button"
                 className="outline-action"
-                onClick={cargarCuentas}
-                disabled={procesando || cargandoCuentas}
+                onClick={cargarDatos}
+                disabled={procesando || cargandoCuentas || cargandoBancos}
               >
                 <FiRefreshCw />
-                Actualizar cuentas
+                Actualizar datos
               </button>
 
               <button
@@ -358,23 +409,23 @@ function TransferenciasACH() {
             </div>
 
             <div className="summary-line">
-              <span>SWIFT origen</span>
-              <strong>{cuentaOrigen?.swiftBanco || 'Pendiente'}</strong>
-            </div>
-
-            <div className="summary-line">
-              <span>Cuenta destino</span>
-              <strong>{formulario.cuentaDestino || 'Pendiente'}</strong>
+              <span>Banco destino</span>
+              <strong>{bancoDestino?.nombre || 'Pendiente'}</strong>
             </div>
 
             <div className="summary-line">
               <span>SWIFT destino</span>
-              <strong>{formulario.swiftDestino || 'Pendiente'}</strong>
+              <strong>{bancoDestino?.swift || 'Pendiente'}</strong>
+            </div>
+
+            <div className="summary-line">
+              <span>Cuenta destino</span>
+              <strong>{cuentaDestinoLimpia || 'Pendiente'}</strong>
             </div>
 
             <div className="summary-line">
               <span>Descripción</span>
-              <strong>{formulario.descripcion || 'Pendiente'}</strong>
+              <strong>{descripcionLimpia || 'Pendiente'}</strong>
             </div>
 
             <div className="summary-line">
@@ -396,8 +447,8 @@ function TransferenciasACH() {
               <div>
                 <strong>Validación pendiente</strong>
                 <p>
-                  Completa todos los campos requeridos y verifica que el monto no
-                  supere el saldo disponible.
+                  Selecciona una cuenta propia, banco destino, cuenta destino y
+                  verifica que el monto no supere tu saldo disponible.
                 </p>
               </div>
             </div>

@@ -7,8 +7,9 @@ import {
   FiRefreshCw,
   FiSend,
 } from 'react-icons/fi'
-import { listarCuentas } from '../services/cuentaService'
-import { listarMovimientos } from '../services/movimientoService'
+import { listarCuentasPorCliente } from '../services/cuentaService'
+import { listarMovimientosPorCuentas } from '../services/movimientoService'
+import { listarTransferenciasAchPorCliente } from '../services/transferenciaService'
 
 function formatoMoneda(valor) {
   return new Intl.NumberFormat('es-GT', {
@@ -67,10 +68,11 @@ function formatearFechaCorta(fecha) {
   }).format(new Date(fecha))
 }
 
-function Dashboard() {
+function Dashboard({ usuario }) {
   const [tarjetaAbierta, setTarjetaAbierta] = useState('')
   const [cuentas, setCuentas] = useState([])
   const [movimientos, setMovimientos] = useState([])
+  const [transferenciasAch, setTransferenciasAch] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
 
@@ -79,13 +81,23 @@ function Dashboard() {
       setCargando(true)
       setError('')
 
-      const [cuentasApi, movimientosApi] = await Promise.all([
-        listarCuentas(),
-        listarMovimientos(),
+      if (!usuario?.idCliente) {
+        setCuentas([])
+        setMovimientos([])
+        setTransferenciasAch([])
+        setError('El usuario actual no tiene cliente asociado.')
+        return
+      }
+
+      const cuentasUsuario = await listarCuentasPorCliente(usuario.idCliente)
+      const [movimientosUsuario, achUsuario] = await Promise.all([
+        listarMovimientosPorCuentas(cuentasUsuario),
+        listarTransferenciasAchPorCliente(usuario.idCliente),
       ])
 
-      setCuentas(cuentasApi)
-      setMovimientos(movimientosApi)
+      setCuentas(cuentasUsuario)
+      setMovimientos(movimientosUsuario)
+      setTransferenciasAch(achUsuario)
     } catch (errorCarga) {
       setError(
         errorCarga?.message ||
@@ -98,7 +110,7 @@ function Dashboard() {
 
   useEffect(() => {
     cargarDatos()
-  }, [])
+  }, [usuario?.idCliente])
 
   const cuentasActivas = useMemo(
     () =>
@@ -131,13 +143,11 @@ function Dashboard() {
     )
   }, [movimientosOrdenados])
 
-  const movimientosAch = useMemo(
-    () =>
-      movimientosOrdenados.filter((movimiento) =>
-        String(movimiento.tipo || '').toLowerCase().includes('transferencia'),
-      ),
-    [movimientosOrdenados],
-  )
+  const transferenciasAchOrdenadas = useMemo(() => {
+    return [...transferenciasAch].sort((a, b) => {
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    })
+  }, [transferenciasAch])
 
   const alternarTarjeta = (tarjeta) => {
     setTarjetaAbierta((tarjetaActual) =>
@@ -149,10 +159,11 @@ function Dashboard() {
     <section className="dashboard">
       <div className="page-title">
         <div>
-          <span className="eyebrow">Resumen general</span>
+          <span className="eyebrow">Resumen personal</span>
           <h1>Dashboard bancario</h1>
           <p>
-            Consulta rápida de cuentas, saldos, movimientos y operaciones ACH.
+            Consulta rápida de tus cuentas, saldos, movimientos y operaciones
+            ACH.
           </p>
         </div>
       </div>
@@ -182,7 +193,7 @@ function Dashboard() {
             </span>
 
             <span className="summary-info">
-              <span className="summary-label">Cuentas activas</span>
+              <span className="summary-label">Mis cuentas activas</span>
               <strong>{cargando ? '...' : cuentasActivas.length}</strong>
               <small>Haz clic para ver el detalle</small>
             </span>
@@ -195,14 +206,14 @@ function Dashboard() {
               {cargando && (
                 <div className="empty-state">
                   <h2>Cargando cuentas</h2>
-                  <p>Consultando información del servidor.</p>
+                  <p>Consultando tus cuentas.</p>
                 </div>
               )}
 
               {!cargando && cuentasActivas.length === 0 && (
                 <div className="empty-state">
                   <h2>Sin cuentas activas</h2>
-                  <p>No hay cuentas activas para mostrar.</p>
+                  <p>No hay cuentas activas asociadas a tu usuario.</p>
                 </div>
               )}
 
@@ -241,9 +252,9 @@ function Dashboard() {
             </span>
 
             <span className="summary-info">
-              <span className="summary-label">Saldo total</span>
+              <span className="summary-label">Mi saldo total</span>
               <strong>{cargando ? '...' : formatoMoneda(saldoTotal)}</strong>
-              <small>Consolidado de cuentas activas</small>
+              <small>Consolidado de tus cuentas activas</small>
             </span>
 
             <FiChevronDown className="summary-chevron" />
@@ -293,7 +304,7 @@ function Dashboard() {
             </span>
 
             <span className="summary-info">
-              <span className="summary-label">Transacciones hoy</span>
+              <span className="summary-label">Mis transacciones hoy</span>
               <strong>{cargando ? '...' : movimientosHoy.length}</strong>
               <small>Operaciones registradas hoy</small>
             </span>
@@ -303,17 +314,10 @@ function Dashboard() {
 
           {tarjetaAbierta === 'movimientos' && (
             <div className="summary-detail">
-              {cargando && (
-                <div className="empty-state">
-                  <h2>Cargando movimientos</h2>
-                  <p>Consultando información del servidor.</p>
-                </div>
-              )}
-
               {!cargando && movimientosHoy.length === 0 && (
                 <div className="empty-state">
                   <h2>Sin movimientos hoy</h2>
-                  <p>No hay operaciones registradas para la fecha actual.</p>
+                  <p>No hay operaciones registradas hoy en tus cuentas.</p>
                 </div>
               )}
 
@@ -365,9 +369,9 @@ function Dashboard() {
             </span>
 
             <span className="summary-info">
-              <span className="summary-label">Operaciones ACH</span>
-              <strong>{cargando ? '...' : movimientosAch.length}</strong>
-              <small>Movimientos relacionados con transferencias</small>
+              <span className="summary-label">Mis operaciones ACH</span>
+              <strong>{cargando ? '...' : transferenciasAchOrdenadas.length}</strong>
+              <small>Transferencias ACH asociadas a tu usuario</small>
             </span>
 
             <FiChevronDown className="summary-chevron" />
@@ -375,34 +379,33 @@ function Dashboard() {
 
           {tarjetaAbierta === 'ach' && (
             <div className="summary-detail">
-              {!cargando && movimientosAch.length === 0 && (
+              {!cargando && transferenciasAchOrdenadas.length === 0 && (
                 <div className="empty-state">
-                  <h2>Sin operaciones</h2>
-                  <p>No hay movimientos de transferencia registrados.</p>
+                  <h2>Sin operaciones ACH</h2>
+                  <p>No hay transferencias ACH asociadas a tu usuario.</p>
                 </div>
               )}
 
-              {!cargando && movimientosAch.length > 0 && (
+              {!cargando && transferenciasAchOrdenadas.length > 0 && (
                 <div className="mini-list dashboard-scroll-list">
-                  {movimientosAch.map((movimiento) => (
+                  {transferenciasAchOrdenadas.map((transferencia) => (
                     <div
                       className="mini-list-item dashboard-mini-movement"
-                      key={movimiento.idMovimiento}
+                      key={transferencia.idTransferencia}
                     >
                       <div>
-                        <strong title={movimiento.tipo}>{movimiento.tipo}</strong>
-                        <small title={movimiento.descripcion}>
-                          {movimiento.descripcion}
+                        <strong title={transferencia.tipo}>
+                          {transferencia.tipo}
+                        </strong>
+                        <small>{transferencia.transactionId}</small>
+                        <small>
+                          {formatearFechaCorta(transferencia.createdAt)} ·{' '}
+                          {transferencia.estado || 'Registrada'}
                         </small>
-                        <small>{obtenerReferencia(movimiento)}</small>
                       </div>
 
-                      <span
-                        className={`mini-amount ${obtenerClaseMonto(
-                          movimiento,
-                        )}`}
-                      >
-                        {formatoMoneda(movimiento.monto)}
+                      <span className="mini-amount debit">
+                        {formatoMoneda(transferencia.monto)}
                       </span>
                     </div>
                   ))}
@@ -417,19 +420,12 @@ function Dashboard() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>Cuentas disponibles</h2>
-              <p>Primeras cuentas activas registradas.</p>
+              <h2>Mis cuentas disponibles</h2>
+              <p>Primeras cuentas activas asociadas a tu usuario.</p>
             </div>
 
             <span>{cuentasActivas.length} registros</span>
           </div>
-
-          {cargando && (
-            <div className="empty-state">
-              <h2>Cargando cuentas</h2>
-              <p>Consultando información desde el servidor.</p>
-            </div>
-          )}
 
           {!cargando && cuentasActivas.length === 0 && (
             <div className="empty-state">
@@ -461,24 +457,17 @@ function Dashboard() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>Movimientos recientes</h2>
-              <p>Últimas operaciones registradas en el sistema.</p>
+              <h2>Mis movimientos recientes</h2>
+              <p>Últimas operaciones registradas en tus cuentas.</p>
             </div>
 
             <span>{movimientosOrdenados.length} registros</span>
           </div>
 
-          {cargando && (
-            <div className="empty-state">
-              <h2>Cargando movimientos</h2>
-              <p>Consultando información desde el servidor.</p>
-            </div>
-          )}
-
           {!cargando && movimientosOrdenados.length === 0 && (
             <div className="empty-state">
               <h2>Sin movimientos</h2>
-              <p>No hay operaciones registradas.</p>
+              <p>No hay operaciones registradas en tus cuentas.</p>
             </div>
           )}
 

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   FiCreditCard,
-  FiDownload,
   FiEye,
   FiRefreshCw,
   FiSearch,
 } from 'react-icons/fi'
-import { listarCuentas } from '../services/cuentaService'
+import { listarCuentasPorCliente } from '../services/cuentaService'
 
 function formatoMoneda(valor) {
   return new Intl.NumberFormat('es-GT', {
@@ -57,7 +56,7 @@ function obtenerTextoBusquedaCuenta(cuenta) {
     .toLowerCase()
 }
 
-function Cuentas() {
+function Cuentas({ usuario }) {
   const [cuentas, setCuentas] = useState([])
   const [busqueda, setBusqueda] = useState('')
   const [cargando, setCargando] = useState(true)
@@ -68,12 +67,18 @@ function Cuentas() {
       setCargando(true)
       setError('')
 
-      const cuentasApi = await listarCuentas()
-      setCuentas(cuentasApi)
+      if (!usuario?.idCliente) {
+        setCuentas([])
+        setError('El usuario actual no tiene cliente asociado.')
+        return
+      }
+
+      const cuentasUsuario = await listarCuentasPorCliente(usuario.idCliente)
+      setCuentas(cuentasUsuario)
     } catch (errorCarga) {
       setError(
         errorCarga?.message ||
-          'No se pudieron cargar las cuentas desde el servidor.',
+          'No se pudieron cargar las cuentas del usuario.',
       )
     } finally {
       setCargando(false)
@@ -82,7 +87,7 @@ function Cuentas() {
 
   useEffect(() => {
     cargarCuentas()
-  }, [])
+  }, [usuario?.idCliente])
 
   const cuentasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase()
@@ -117,11 +122,10 @@ function Cuentas() {
     <section className="page-section" id="cuentas">
       <div className="page-title">
         <div>
-          <span className="eyebrow">Consulta de cuentas</span>
-          <h1>Cuentas bancarias</h1>
+          <span className="eyebrow">Consulta personal</span>
+          <h1>Mis cuentas bancarias</h1>
           <p>
-            Revisa cuentas registradas, saldos disponibles, estado y datos
-            asociados al cliente.
+            Revisa únicamente las cuentas asociadas al usuario autenticado.
           </p>
         </div>
       </div>
@@ -136,7 +140,7 @@ function Cuentas() {
           </div>
 
           <strong>{cuentas.length}</strong>
-          <small>Cuentas registradas en el sistema.</small>
+          <small>Cuentas asociadas a tu usuario.</small>
         </article>
 
         <article className="summary-card simple">
@@ -160,7 +164,7 @@ function Cuentas() {
           </div>
 
           <strong>{formatoMoneda(saldoTotal)}</strong>
-          <small>Consolidado de cuentas activas.</small>
+          <small>Consolidado de tus cuentas activas.</small>
         </article>
       </div>
 
@@ -169,8 +173,8 @@ function Cuentas() {
           <div>
             <h2>Listado de cuentas</h2>
             <p>
-              Puedes buscar por número, tipo, cliente, estado, banco, saldo o
-              fecha.
+              Puedes buscar dentro de tus cuentas por número, tipo, estado,
+              banco, saldo o fecha.
             </p>
           </div>
 
@@ -182,7 +186,7 @@ function Cuentas() {
             <FiSearch />
             <input
               type="text"
-              placeholder="Buscar por número, tipo, cliente, estado, banco o saldo"
+              placeholder="Buscar por número, tipo, estado, banco o saldo"
               value={busqueda}
               onChange={(evento) => setBusqueda(evento.target.value)}
             />
@@ -197,11 +201,6 @@ function Cuentas() {
             >
               <FiRefreshCw />
               {cargando ? 'Cargando...' : 'Actualizar'}
-            </button>
-
-            <button type="button" className="toolbar-button">
-              <FiDownload />
-              Exportar
             </button>
           </div>
         </div>
@@ -225,7 +224,7 @@ function Cuentas() {
         {!error && !cargando && cuentasFiltradas.length === 0 && (
           <div className="empty-state">
             <h2>Sin resultados</h2>
-            <p>No se encontraron cuentas con los filtros actuales.</p>
+            <p>No se encontraron cuentas asociadas al usuario actual.</p>
           </div>
         )}
 

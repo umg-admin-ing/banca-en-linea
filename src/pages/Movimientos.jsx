@@ -3,13 +3,12 @@ import {
   FiActivity,
   FiArrowDownCircle,
   FiArrowUpCircle,
-  FiDownload,
   FiEye,
   FiRefreshCw,
   FiSearch,
 } from 'react-icons/fi'
-import { listarCuentas } from '../services/cuentaService'
-import { listarMovimientos } from '../services/movimientoService'
+import { listarCuentasPorCliente } from '../services/cuentaService'
+import { listarMovimientosPorCuentas } from '../services/movimientoService'
 
 function formatoMoneda(valor) {
   return new Intl.NumberFormat('es-GT', {
@@ -73,7 +72,7 @@ function obtenerTextoBusquedaMovimiento(movimiento, cuenta) {
     .toLowerCase()
 }
 
-function Movimientos() {
+function Movimientos({ usuario }) {
   const [movimientos, setMovimientos] = useState([])
   const [cuentas, setCuentas] = useState([])
   const [busqueda, setBusqueda] = useState('')
@@ -85,17 +84,22 @@ function Movimientos() {
       setCargando(true)
       setError('')
 
-      const [movimientosApi, cuentasApi] = await Promise.all([
-        listarMovimientos(),
-        listarCuentas(),
-      ])
+      if (!usuario?.idCliente) {
+        setCuentas([])
+        setMovimientos([])
+        setError('El usuario actual no tiene cliente asociado.')
+        return
+      }
 
-      setMovimientos(movimientosApi)
-      setCuentas(cuentasApi)
+      const cuentasUsuario = await listarCuentasPorCliente(usuario.idCliente)
+      const movimientosUsuario = await listarMovimientosPorCuentas(cuentasUsuario)
+
+      setCuentas(cuentasUsuario)
+      setMovimientos(movimientosUsuario)
     } catch (errorCarga) {
       setError(
         errorCarga?.message ||
-          'No se pudieron cargar los movimientos desde el servidor.',
+          'No se pudieron cargar los movimientos del usuario.',
       )
     } finally {
       setCargando(false)
@@ -104,7 +108,7 @@ function Movimientos() {
 
   useEffect(() => {
     cargarDatos()
-  }, [])
+  }, [usuario?.idCliente])
 
   const cuentasPorId = useMemo(() => {
     return cuentas.reduce((acumulador, cuenta) => {
@@ -159,11 +163,10 @@ function Movimientos() {
     <section className="page-section" id="movimientos">
       <div className="page-title">
         <div>
-          <span className="eyebrow">Historial operativo</span>
-          <h1>Movimientos bancarios</h1>
+          <span className="eyebrow">Historial personal</span>
+          <h1>Mis movimientos</h1>
           <p>
-            Consulta depósitos, retiros, transferencias y operaciones
-            registradas en las cuentas.
+            Consulta únicamente las operaciones registradas en tus cuentas.
           </p>
         </div>
       </div>
@@ -178,7 +181,7 @@ function Movimientos() {
           </div>
 
           <strong>{movimientos.length}</strong>
-          <small>Operaciones registradas.</small>
+          <small>Operaciones asociadas a tus cuentas.</small>
         </article>
 
         <article className="summary-card simple">
@@ -214,7 +217,7 @@ function Movimientos() {
           </div>
 
           <strong>{formatoMoneda(montoMovido)}</strong>
-          <small>Suma absoluta de movimientos.</small>
+          <small>Suma absoluta de tus movimientos.</small>
         </article>
       </div>
 
@@ -222,7 +225,7 @@ function Movimientos() {
         <div className="panel-header">
           <div>
             <h2>Listado de movimientos</h2>
-            <p>Revisa el detalle de cada operación registrada.</p>
+            <p>Revisa el detalle de cada operación registrada en tus cuentas.</p>
           </div>
 
           <span>{movimientosFiltrados.length} registros</span>
@@ -233,7 +236,7 @@ function Movimientos() {
             <FiSearch />
             <input
               type="text"
-              placeholder="Buscar por tipo, cuenta, referencia, cliente o descripción"
+              placeholder="Buscar por tipo, cuenta, referencia o descripción"
               value={busqueda}
               onChange={(evento) => setBusqueda(evento.target.value)}
             />
@@ -248,11 +251,6 @@ function Movimientos() {
             >
               <FiRefreshCw />
               {cargando ? 'Cargando...' : 'Actualizar'}
-            </button>
-
-            <button type="button" className="toolbar-button">
-              <FiDownload />
-              Exportar
             </button>
           </div>
         </div>
@@ -276,7 +274,7 @@ function Movimientos() {
         {!error && !cargando && movimientosFiltrados.length === 0 && (
           <div className="empty-state">
             <h2>Sin resultados</h2>
-            <p>No se encontraron movimientos con los filtros actuales.</p>
+            <p>No se encontraron movimientos asociados al usuario actual.</p>
           </div>
         )}
 
@@ -344,7 +342,13 @@ function Movimientos() {
                     </div>
                   </div>
 
-                  <span className={`status-badge ${obtenerClaseMonto(movimiento) === 'debit' ? 'warning' : 'success'}`}>
+                  <span
+                    className={`status-badge ${
+                      obtenerClaseMonto(movimiento) === 'debit'
+                        ? 'warning'
+                        : 'success'
+                    }`}
+                  >
                     {obtenerTextoOperacion(movimiento)}
                   </span>
 
