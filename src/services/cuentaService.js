@@ -17,6 +17,16 @@ function normalizarCuenta(cuentaApi) {
   }
 }
 
+export function filtrarCuentasPorCliente(cuentas, idCliente) {
+  if (!idCliente) {
+    return []
+  }
+
+  return cuentas.filter(
+    (cuenta) => String(cuenta.idCliente) === String(idCliente),
+  )
+}
+
 export async function listarCuentas() {
   const respuesta = await apiGet('/api/cuentas')
 
@@ -25,6 +35,11 @@ export async function listarCuentas() {
   }
 
   return respuesta.map(normalizarCuenta)
+}
+
+export async function listarCuentasPorCliente(idCliente) {
+  const cuentas = await listarCuentas()
+  return filtrarCuentasPorCliente(cuentas, idCliente)
 }
 
 export async function obtenerCuentaPorId(idCuenta) {

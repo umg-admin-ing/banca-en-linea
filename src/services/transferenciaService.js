@@ -1,4 +1,4 @@
-import { apiPost } from './apiClient'
+import { apiGet, apiPost } from './apiClient'
 
 function normalizarTransferencia(transferenciaApi) {
   return {
@@ -20,6 +20,35 @@ function normalizarTransferencia(transferenciaApi) {
     estado: transferenciaApi.estado || '',
     createdAt: transferenciaApi.createdAt || null,
   }
+}
+
+function normalizarListaTransferencias(respuesta) {
+  if (!Array.isArray(respuesta)) {
+    return []
+  }
+
+  return respuesta.map(normalizarTransferencia)
+}
+
+export async function listarTransferenciasPorCliente(idCliente) {
+  const respuesta = await apiGet(`/api/transferencias/por-cliente/${idCliente}`)
+  return normalizarListaTransferencias(respuesta)
+}
+
+export async function listarTransferenciasInternasPorCliente(idCliente) {
+  const respuesta = await apiGet(
+    `/api/transferencias/internas/por-cliente/${idCliente}`,
+  )
+
+  return normalizarListaTransferencias(respuesta)
+}
+
+export async function listarTransferenciasAchPorCliente(idCliente) {
+  const respuesta = await apiGet(
+    `/api/transferencias/ach/por-cliente/${idCliente}`,
+  )
+
+  return normalizarListaTransferencias(respuesta)
 }
 
 export async function registrarTransferenciaInterna({

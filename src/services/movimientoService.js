@@ -15,6 +15,16 @@ function normalizarMovimiento(movimientoApi) {
   }
 }
 
+export function filtrarMovimientosPorCuentas(movimientos, cuentas) {
+  const idsCuentasPermitidas = new Set(
+    cuentas.map((cuenta) => String(cuenta.idCuenta)),
+  )
+
+  return movimientos.filter((movimiento) =>
+    idsCuentasPermitidas.has(String(movimiento.idCuenta)),
+  )
+}
+
 export async function listarMovimientos() {
   const respuesta = await apiGet('/api/movimientos')
 
@@ -23,6 +33,11 @@ export async function listarMovimientos() {
   }
 
   return respuesta.map(normalizarMovimiento)
+}
+
+export async function listarMovimientosPorCuentas(cuentas) {
+  const movimientos = await listarMovimientos()
+  return filtrarMovimientosPorCuentas(movimientos, cuentas)
 }
 
 export async function obtenerMovimientoPorId(idMovimiento) {

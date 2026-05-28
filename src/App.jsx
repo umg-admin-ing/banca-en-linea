@@ -29,22 +29,22 @@ function App() {
   const obtenerPantalla = () => {
     switch (pantallaActual) {
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard usuario={usuario} />
 
       case 'cuentas':
-        return <Cuentas />
+        return <Cuentas usuario={usuario} />
 
       case 'movimientos':
-        return <Movimientos />
+        return <Movimientos usuario={usuario} />
 
       case 'transferencias':
-        return <TransferenciasInternas />
+        return <TransferenciasInternas usuario={usuario} />
 
       case 'ach':
-        return <TransferenciasACH />
+        return <TransferenciasACH usuario={usuario} />
 
       default:
-        return <Dashboard />
+        return <Dashboard usuario={usuario} />
     }
   }
 

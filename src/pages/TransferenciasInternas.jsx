@@ -6,7 +6,7 @@ import {
   FiRefreshCw,
   FiRepeat,
 } from 'react-icons/fi'
-import { listarCuentas } from '../services/cuentaService'
+import { listarCuentasPorCliente } from '../services/cuentaService'
 import { registrarTransferenciaInterna } from '../services/transferenciaService'
 
 function formatoMoneda(valor) {
@@ -16,7 +16,7 @@ function formatoMoneda(valor) {
   }).format(Number(valor || 0))
 }
 
-function TransferenciasInternas() {
+function TransferenciasInternas({ usuario }) {
   const [cuentas, setCuentas] = useState([])
   const [formulario, setFormulario] = useState({
     cuentaOrigenId: '',
@@ -35,12 +35,18 @@ function TransferenciasInternas() {
       setCargandoCuentas(true)
       setError('')
 
-      const cuentasApi = await listarCuentas()
-      setCuentas(cuentasApi)
+      if (!usuario?.idCliente) {
+        setCuentas([])
+        setError('El usuario actual no tiene cliente asociado.')
+        return
+      }
+
+      const cuentasUsuario = await listarCuentasPorCliente(usuario.idCliente)
+      setCuentas(cuentasUsuario)
     } catch (errorCarga) {
       setError(
         errorCarga?.message ||
-          'No se pudieron cargar las cuentas disponibles.',
+          'No se pudieron cargar las cuentas del usuario.',
       )
     } finally {
       setCargandoCuentas(false)
@@ -49,7 +55,7 @@ function TransferenciasInternas() {
 
   useEffect(() => {
     cargarCuentas()
-  }, [])
+  }, [usuario?.idCliente])
 
   const cuentaOrigen = useMemo(() => {
     return cuentas.find(
@@ -57,46 +63,32 @@ function TransferenciasInternas() {
     )
   }, [cuentas, formulario.cuentaOrigenId])
 
-  const cuentaDestino = useMemo(() => {
-    return cuentas.find(
-      (cuenta) => cuenta.numeroCuenta === formulario.numeroCuentaDestino,
-    )
-  }, [cuentas, formulario.numeroCuentaDestino])
-
-  const cuentasDestinoDisponibles = useMemo(() => {
-    return cuentas.filter(
-      (cuenta) => String(cuenta.idCuenta) !== formulario.cuentaOrigenId,
-    )
-  }, [cuentas, formulario.cuentaOrigenId])
-
   const montoNumerico = Number(formulario.monto || 0)
+
+  const numeroCuentaDestinoLimpio = formulario.numeroCuentaDestino.trim()
 
   const saldoPosterior = cuentaOrigen
     ? Number(cuentaOrigen.saldoDisponible || 0) - montoNumerico
     : 0
 
+  const destinoEsMismaCuenta =
+    cuentaOrigen?.numeroCuenta &&
+    cuentaOrigen.numeroCuenta === numeroCuentaDestinoLimpio
+
   const formularioValido =
     cuentaOrigen &&
-    cuentaDestino &&
+    numeroCuentaDestinoLimpio.length >= 6 &&
+    !destinoEsMismaCuenta &&
     montoNumerico > 0 &&
-    cuentaOrigen.numeroCuenta !== cuentaDestino.numeroCuenta &&
     montoNumerico <= Number(cuentaOrigen.saldoDisponible || 0)
 
   const manejarCambio = (evento) => {
     const { name, value } = evento.target
 
-    setFormulario((estadoActual) => {
-      const nuevoEstado = {
-        ...estadoActual,
-        [name]: value,
-      }
-
-      if (name === 'cuentaOrigenId') {
-        nuevoEstado.numeroCuentaDestino = ''
-      }
-
-      return nuevoEstado
-    })
+    setFormulario((estadoActual) => ({
+      ...estadoActual,
+      [name]: value,
+    }))
 
     setError('')
     setMensajeExito('')
@@ -117,7 +109,7 @@ function TransferenciasInternas() {
   const enviarTransferencia = async () => {
     if (!formularioValido) {
       setError(
-        'Selecciona cuentas diferentes y asegúrate de que el monto sea mayor a cero y no supere el saldo disponible.',
+        'Selecciona una cuenta origen propia, ingresa una cuenta destino diferente y verifica que el monto sea válido.',
       )
       return
     }
@@ -130,7 +122,7 @@ function TransferenciasInternas() {
 
       const transferencia = await registrarTransferenciaInterna({
         cuentaOrigenId: Number(formulario.cuentaOrigenId),
-        numeroCuentaDestino: formulario.numeroCuentaDestino,
+        numeroCuentaDestino: numeroCuentaDestinoLimpio,
         monto: montoNumerico,
       })
 
@@ -158,11 +150,11 @@ function TransferenciasInternas() {
     <section className="page-section" id="transferencias-internas">
       <div className="page-title">
         <div>
-          <span className="eyebrow">Operaciones internas</span>
+          <span className="eyebrow">Operaciones personales</span>
           <h1>Transferencias internas</h1>
           <p>
-            Registra transferencias entre cuentas internas de NovaBank usando
-            cuentas origen y destino disponibles.
+            Registra transferencias desde tus cuentas hacia otra cuenta interna
+            de NovaBank.
           </p>
         </div>
       </div>
@@ -177,7 +169,7 @@ function TransferenciasInternas() {
           </div>
 
           <strong>Interna</strong>
-          <small>Transferencia entre cuentas del sistema.</small>
+          <small>Transferencia entre cuentas de NovaBank.</small>
         </article>
 
         <article className="summary-card simple">
@@ -185,11 +177,11 @@ function TransferenciasInternas() {
             <span className="summary-icon">
               <FiCreditCard />
             </span>
-            <span>Cuentas disponibles</span>
+            <span>Mis cuentas origen</span>
           </div>
 
           <strong>{cuentas.length}</strong>
-          <small>Cuentas cargadas desde el backend.</small>
+          <small>Cuentas asociadas al usuario autenticado.</small>
         </article>
 
         <article className="summary-card simple">
@@ -232,7 +224,10 @@ function TransferenciasInternas() {
           <div className="panel-header">
             <div>
               <h2>Nueva transferencia interna</h2>
-              <p>Selecciona la cuenta origen, destino y monto a transferir.</p>
+              <p>
+                Selecciona una de tus cuentas como origen e ingresa el número de
+                cuenta destino.
+              </p>
             </div>
 
             <span>Interna</span>
@@ -250,7 +245,7 @@ function TransferenciasInternas() {
                 >
                   <option value="">
                     {cargandoCuentas
-                      ? 'Cargando cuentas...'
+                      ? 'Cargando tus cuentas...'
                       : 'Selecciona una cuenta origen'}
                   </option>
 
@@ -265,32 +260,14 @@ function TransferenciasInternas() {
 
               <label className="form-group full-row">
                 <span>Cuenta destino</span>
-                <select
+                <input
+                  type="text"
                   name="numeroCuentaDestino"
+                  placeholder="Ingresa el número de cuenta destino"
                   value={formulario.numeroCuentaDestino}
                   onChange={manejarCambio}
-                  disabled={
-                    cargandoCuentas ||
-                    procesando ||
-                    !formulario.cuentaOrigenId
-                  }
-                >
-                  <option value="">
-                    {!formulario.cuentaOrigenId
-                      ? 'Selecciona primero la cuenta origen'
-                      : 'Selecciona una cuenta destino'}
-                  </option>
-
-                  {cuentasDestinoDisponibles.map((cuenta) => (
-                    <option
-                      key={cuenta.idCuenta}
-                      value={cuenta.numeroCuenta}
-                    >
-                      {cuenta.tipoCuenta} · {cuenta.numeroCuenta} ·{' '}
-                      {formatoMoneda(cuenta.saldoDisponible)}
-                    </option>
-                  ))}
-                </select>
+                  disabled={procesando}
+                />
               </label>
 
               <label className="form-group">
@@ -363,7 +340,7 @@ function TransferenciasInternas() {
                   ? `${cuentaOrigen.tipoCuenta} · ${formatoMoneda(
                       cuentaOrigen.saldoDisponible,
                     )}`
-                  : 'Selecciona cuenta'}
+                  : 'Selecciona una de tus cuentas'}
               </small>
             </div>
 
@@ -373,12 +350,8 @@ function TransferenciasInternas() {
 
             <div>
               <span>Destino</span>
-              <strong>{cuentaDestino?.numeroCuenta || 'Pendiente'}</strong>
-              <small>
-                {cuentaDestino
-                  ? `${cuentaDestino.tipoCuenta} · Cliente ${cuentaDestino.idCliente}`
-                  : 'Selecciona cuenta'}
-              </small>
+              <strong>{numeroCuentaDestinoLimpio || 'Pendiente'}</strong>
+              <small>Cuenta interna destino</small>
             </div>
           </div>
 
@@ -409,8 +382,9 @@ function TransferenciasInternas() {
               <div>
                 <strong>Validación pendiente</strong>
                 <p>
-                  Selecciona cuentas diferentes y asegúrate de que el monto sea
-                  mayor a cero y no supere el saldo disponible.
+                  Selecciona una cuenta origen propia, ingresa una cuenta destino
+                  diferente y verifica que el monto no supere tu saldo
+                  disponible.
                 </p>
               </div>
             </div>
